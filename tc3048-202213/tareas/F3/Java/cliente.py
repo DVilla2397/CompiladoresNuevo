@@ -20,3 +20,40 @@ from antlr.JavaLexer import JavaLexer
 from antlr.JavaParser import JavaParser
 import sys
 
+from antlr4 import *
+from antlr.JavaParserListener import JavaParserListener
+from antlr.JavaLexer import JavaLexer
+from antlr.JavaParser import JavaParser
+import sys
+
+
+class TreePrinter(JavaParserListener):
+    def enterClass(self, ctx:JavaParser.ClassDeclarationContext):
+
+        print(ctx.identifier().getText())
+
+class TreePrinter2(JavaParserListener):
+    def enterMethodDeclaration(self, ctx:JavaParser.MethodDeclarationContext):
+        print("Tipo: " + ctx.typeTypeOrVoid().getText() + "Identificador: " + ctx.identifier().getText())
+
+class TreePrinter3(JavaParserListener):
+    def enterStrL(self, ctx: JavaParser.StrLContext):
+        print("Todos los Strings:" + ctx.getText())
+def main(argv):
+    parser = JavaParser(CommonTokenStream(JavaLexer(FileStream("test.java"))))
+    tree = parser.compilationUnit()
+
+    print(tree)
+
+    walker = ParseTreeWalker()
+    walker.walk(TreePrinter(), tree)
+
+    walker2 = ParseTreeWalker()
+    walker2.walk(TreePrinter2(), tree)
+
+    walker3 = ParseTreeWalker()
+    walker3.walk(TreePrinter3(), tree)
+
+
+if __name__ == '__main__':
+    main("test.java")
