@@ -94,13 +94,21 @@ class SemanticListener(coolListener):
     def enterInt(self, ctx: coolParser.IntContext):
         ctx.type = lookupClass('Int')
 
+    def exitParens(self, ctx: coolParser.ParensContext):
+        ctx.type = ctx.expr().type
+
+    def enterNew(self, ctx: coolParser.NewContext):
+        pass
+
     def exitPri(self, ctx: coolParser.PriContext):
         # ¡Este paso es necesario porque en la gramática hay una regla que consolida todas las literales!
         # Es necesario para darles la misma precedencia
         # Descomentar la siguiente línea una vez que los nodos de la regla primary ya tengan tipo
-        # HolaPrueba
-        # ctx.type = ctx.primary().type
-        pass
+        ctx.type = ctx.primary().type
+
+    def enterBool(self, ctx: coolParser.BoolContext):
+        ctx.type = lookupClass("Bool")
+
 
     def exitAdd(self, ctx: coolParser.AddContext):
         # test_badarith
@@ -108,9 +116,6 @@ class SemanticListener(coolListener):
 
     def exitCall(self, ctx: coolParser.CallContext):
         # test_badmethodcallitself
-        # for x, y in zip(self.klass.lookupMethod(ctx.ID.getText()).params, ctx.params):
-        #     if len(method.params) != len(ctx.params):
-        #         raise BadAttributeName
         pass
 
     ### BAD WHILE BODY
@@ -126,7 +131,15 @@ class SemanticListener(coolListener):
         # test_baddispatch, test_badwhilebody, test_badargs1
         try:
             try:
+                passed_params = []
+                for child in ctx.params:
+                    passed_params.append(child.type)
                 method = ctx.expr(0).type.lookupMethod(ctx.ID().getText())
+                if len(passed_params) != len(method.params):
+                    raise BadType
+                for passed_param, needed_param in zip(passed_params, method.params.values()):
+                    if passed_param != needed_param:
+                        raise BadType
                 ctx.type = method.type
             except KeyError:
                 raise MethodDoesNotExist
@@ -151,18 +164,21 @@ class SemanticListener(coolListener):
         pass
 
     def exitVar(self, ctx: coolParser.VarContext):
-        # try:
-        #     ctx.type = self.scopes(ctx.ID().getText())
-        # except KeyError:
-        #     raise BadVariableName
-        pass
+        try:
+            if ctx.ID().getText() == "self":
+                ctx.type = self.klass
+            else:
+                ctx.type = self.scopes[ctx.ID().getText()]
+        except KeyError:
+            raise BadVariableName
 
     ### RETURN TYPE NO EXIST
     def exitNew(self, ctx: coolParser.NewContext):
         try:
-            lookupClass(ctx.TYPE().getText())
+            ctx.type = lookupClass(ctx.TYPE().getText())
         except KeyError:
             raise BadClassName()
+
 
     ### RETURN TYPE NO EXIST
     def exitAssign(self, ctx: coolParser.AssignContext):
@@ -172,9 +188,3 @@ class SemanticListener(coolListener):
     def exitIf(self, ctx: coolParser.IfContext):
         # test_lubtest
         pass
-
-    def exitN(self, ctx: coolParser.NewContext):
-        try:
-            ctx.type = lookupClass(ctx.TYPE().getText())
-        except KeyError:
-            raise BadVariableName
