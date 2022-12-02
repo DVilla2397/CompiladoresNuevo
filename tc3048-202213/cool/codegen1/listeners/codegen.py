@@ -65,7 +65,11 @@ class CodeGen():
         return r
 
     def tablaModelosConstructores(self):
-        return ""
+        r = "class_objTab:\n"
+        for k in allClasses().values():
+            r += "    .word {}_init\n".format(k.name)
+            r += "    .word {}_protObj\n".format(k.name)
+        return r
 
     def tablaMetodos(self):
         r = ""
@@ -73,12 +77,15 @@ class CodeGen():
             r += k.name + "_dispTab:\n"
             for k1 in k.methods:
                 r += "    .word {}.{}\n".format(k.name, k1)
-
         return r
 
     def objetosModelos(self):
-        for k in allClasses():
-            pass
+        idx = 5
+        for k in allClasses().values():
+            if k.name != "Main":
+                idx += 1
+            r += "    .word 0\n" * len(k.attributes)
+            r += c_Tpl.substitute(name="{}_protObj".format(k.name), tag=idx, size=3)
 
         return ""
 
